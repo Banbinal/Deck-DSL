@@ -70,6 +70,19 @@ html, body {
   background: var(--accent); color: white; border-color: var(--accent);
 }
 .toolbar button.tb-primary:hover { opacity: 0.9; background: var(--accent); }
+.toolbar select.tb-select {
+  -webkit-appearance: none; appearance: none;
+  background: transparent; color: inherit;
+  border: 1px solid #4A5058; border-radius: 4px;
+  padding: 5px 24px 5px 11px; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--sans); font-weight: 600; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='%23E5E2DA'><path d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat; background-position: right 7px center;
+  background-size: 8px;
+}
+.toolbar select.tb-select:hover { background-color: rgba(255,255,255,0.06); }
+.toolbar select.tb-select option { color: var(--text); background: #2A2F36; }
 .editor textarea {
   flex: 1; width: 100%; min-height: 0;
   font-family: var(--mono); font-size: 13px; line-height: 1.6;
@@ -444,6 +457,405 @@ body.viewer-mode .preview .toolbar .viewer-exp {
 @media print {
   .viewer-banner, .dialog-backdrop, .toast { display: none !important; }
 }
+
+/* ============================================================
+   THEME · CYBERPUNK — neon, scanlines, RGB-split, deep-fried glow
+   ============================================================ */
+body[data-theme="cyberpunk"] {
+  --bg: #0A0A14;
+  --surface: rgba(20, 30, 50, 0.78);
+  --softer: rgba(0, 255, 229, 0.04);
+  --soft: rgba(0, 255, 229, 0.08);
+  --text: #E2F4FF;
+  --muted: #6B8FA3;
+  --border: rgba(0, 255, 229, 0.28);
+  --border-strong: rgba(0, 255, 229, 0.55);
+  --accent: #FF0099;
+  --accent-soft: rgba(255, 0, 153, 0.14);
+  --pos: #00FF85;
+  --neg: #FF4D6D;
+  --warn: #FFD600;
+  --info: #00C4FF;
+}
+body[data-theme="cyberpunk"] .preview { background: var(--bg); }
+body[data-theme="cyberpunk"] .document {
+  font-family: var(--mono);
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(255, 0, 153, 0.12), transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 255, 229, 0.10), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  position: relative;
+}
+body[data-theme="cyberpunk"] .document::before {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent 0, transparent 2px,
+    rgba(0, 255, 229, 0.045) 2px, rgba(0, 255, 229, 0.045) 3px
+  );
+  pointer-events: none; z-index: 1;
+  mix-blend-mode: screen;
+}
+body[data-theme="cyberpunk"] .document > *,
+body[data-theme="cyberpunk"] .doc-header { position: relative; z-index: 2; }
+
+body[data-theme="cyberpunk"] .doc-header { border-bottom-color: rgba(0, 255, 229, 0.3); }
+body[data-theme="cyberpunk"] .doc-header .eyebrow {
+  color: #FF0099; text-shadow: 0 0 10px rgba(255, 0, 153, 0.55);
+}
+body[data-theme="cyberpunk"] .doc-header h1 {
+  font-family: var(--mono); font-weight: 800; font-size: 38px;
+  text-transform: uppercase; letter-spacing: 0.02em;
+  color: #00FFE5;
+  text-shadow:
+    -1.5px 0 0 #FF0099, 1.5px 0 0 #00FFE5,
+    0 0 18px rgba(0, 255, 229, 0.55);
+  animation: cyber-jitter 6s infinite;
+}
+body[data-theme="cyberpunk"] .doc-header .subtitle {
+  font-family: var(--mono); font-style: normal;
+  color: #00FFE5; opacity: 0.65;
+  letter-spacing: 0.04em;
+}
+body[data-theme="cyberpunk"] .doc-header .meta { color: var(--muted); }
+body[data-theme="cyberpunk"] .doc-header .meta strong { color: #00FFE5; }
+
+body[data-theme="cyberpunk"] .document > h1,
+body[data-theme="cyberpunk"] .document > h2 {
+  font-family: var(--mono); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: #00FFE5;
+  text-shadow:
+    -1.2px 0 0 #FF0099, 1.2px 0 0 #00FFE5,
+    0 0 12px rgba(0, 255, 229, 0.45);
+}
+body[data-theme="cyberpunk"] .document > h2::before {
+  background: #FF0099; box-shadow: 0 0 10px #FF0099, 0 0 4px #FF0099;
+  height: 2px;
+}
+body[data-theme="cyberpunk"] .document > h3 {
+  color: #FF0099; text-shadow: 0 0 8px rgba(255, 0, 153, 0.45);
+  font-family: var(--mono);
+}
+body[data-theme="cyberpunk"] .document p strong { color: #00FFE5; }
+body[data-theme="cyberpunk"] .document a {
+  color: #FF0099; text-shadow: 0 0 6px rgba(255, 0, 153, 0.4);
+}
+body[data-theme="cyberpunk"] .document code {
+  background: rgba(0, 255, 229, 0.1); color: #00FFE5;
+  border: 1px solid rgba(0, 255, 229, 0.2);
+}
+body[data-theme="cyberpunk"] .document hr {
+  border: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 229, 0.55), rgba(255, 0, 153, 0.55), transparent);
+  box-shadow: 0 0 8px rgba(0, 255, 229, 0.4);
+}
+
+@keyframes cyber-jitter {
+  0%, 96%, 100% { transform: translate(0); filter: none; }
+  97% { transform: translate(-2px, 1px); filter: hue-rotate(20deg) saturate(1.4); }
+  98% { transform: translate(2px, -1px); filter: hue-rotate(-15deg); }
+  99% { transform: translate(0, 1px); filter: none; }
+}
+@keyframes cyber-flicker {
+  0%, 95%, 100% { opacity: 1; }
+  96% { opacity: 0.85; }
+  97% { opacity: 1; }
+  98% { opacity: 0.92; }
+}
+
+body[data-theme="cyberpunk"] .kpi-grid {
+  background: rgba(0, 255, 229, 0.18);
+  border: 1px solid rgba(0, 255, 229, 0.4);
+  box-shadow: 0 0 30px rgba(0, 255, 229, 0.18), inset 0 0 0 1px rgba(255, 0, 153, 0.1);
+}
+body[data-theme="cyberpunk"] .kpi {
+  background: rgba(20, 30, 50, 0.85);
+  border: 0; position: relative;
+}
+body[data-theme="cyberpunk"] .kpi::after {
+  content: ""; position: absolute; top: 0; right: 0;
+  width: 14px; height: 14px;
+  border-top: 1px solid #FF0099; border-right: 1px solid #FF0099;
+  box-shadow: 0 0 6px rgba(255, 0, 153, 0.5);
+}
+body[data-theme="cyberpunk"] .kpi .label { color: #FF0099; }
+body[data-theme="cyberpunk"] .kpi .value {
+  color: #00FFE5; font-family: var(--mono);
+  text-shadow: 0 0 14px rgba(0, 255, 229, 0.7);
+}
+body[data-theme="cyberpunk"] .kpi .delta.pos { color: #00FF85; text-shadow: 0 0 8px rgba(0, 255, 133, 0.5); }
+body[data-theme="cyberpunk"] .kpi .delta.neg { color: #FF4D6D; text-shadow: 0 0 8px rgba(255, 77, 109, 0.5); }
+
+body[data-theme="cyberpunk"] .card {
+  background: rgba(20, 30, 50, 0.8);
+  border: 1px solid rgba(0, 255, 229, 0.4);
+  box-shadow: 0 0 22px rgba(0, 255, 229, 0.12), inset 0 0 0 1px rgba(255, 0, 153, 0.12);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+}
+body[data-theme="cyberpunk"] .card .title {
+  color: #00FFE5; font-family: var(--mono);
+  text-shadow: 0 0 8px rgba(0, 255, 229, 0.4);
+}
+body[data-theme="cyberpunk"] .card .body { color: var(--muted); }
+body[data-theme="cyberpunk"] .card .icon { filter: drop-shadow(0 0 8px rgba(0, 255, 229, 0.6)); }
+
+body[data-theme="cyberpunk"] .schema {
+  background: rgba(20, 30, 50, 0.55);
+  border: 1px solid rgba(255, 0, 153, 0.4);
+  box-shadow: 0 0 30px rgba(255, 0, 153, 0.18), inset 0 0 30px rgba(0, 255, 229, 0.04);
+}
+body[data-theme="cyberpunk"] .schema svg {
+  filter:
+    saturate(1.6) contrast(1.1)
+    drop-shadow(1.2px 0 0 rgba(255, 0, 153, 0.5))
+    drop-shadow(-1.2px 0 0 rgba(0, 255, 229, 0.5));
+  animation: cyber-jitter 7s infinite, cyber-flicker 4s infinite;
+}
+body[data-theme="cyberpunk"] .schema svg text { fill: #00FFE5; }
+body[data-theme="cyberpunk"] .schema svg text[fill="white"] { fill: #FFFFFF; }
+
+body[data-theme="cyberpunk"] .matrix {
+  background: rgba(20, 30, 50, 0.55);
+  border: 1px solid rgba(255, 0, 153, 0.35);
+  box-shadow: 0 0 30px rgba(255, 0, 153, 0.12);
+}
+body[data-theme="cyberpunk"] .matrix .quad { border-color: rgba(0, 255, 229, 0.25); }
+body[data-theme="cyberpunk"] .matrix .y-axis,
+body[data-theme="cyberpunk"] .matrix .x-axis,
+body[data-theme="cyberpunk"] .matrix .corner {
+  background: rgba(0, 0, 0, 0.45); color: #00FFE5;
+}
+body[data-theme="cyberpunk"] .matrix .quad-label { color: #FF0099; letter-spacing: 0.18em; }
+body[data-theme="cyberpunk"] .matrix .quad li {
+  background: rgba(0, 255, 229, 0.08);
+  border-left-color: rgba(0, 255, 229, 0.55);
+  color: #00FFE5;
+}
+body[data-theme="cyberpunk"] .matrix .q-tr { background: rgba(255, 0, 153, 0.14); }
+body[data-theme="cyberpunk"] .matrix .q-tr li {
+  background: rgba(255, 0, 153, 0.18);
+  border-left-color: #FF0099;
+  color: #FFB3DC;
+}
+body[data-theme="cyberpunk"] .matrix .q-tr .quad-label { color: #FF0099; text-shadow: 0 0 8px rgba(255, 0, 153, 0.55); }
+
+body[data-theme="cyberpunk"] .document table {
+  border: 1px solid rgba(0, 255, 229, 0.3);
+  background: rgba(20, 30, 50, 0.55);
+}
+body[data-theme="cyberpunk"] .document th {
+  background: rgba(255, 0, 153, 0.22); color: #FF0099;
+  text-shadow: 0 0 8px rgba(255, 0, 153, 0.4);
+  font-family: var(--mono); letter-spacing: 0.1em;
+}
+body[data-theme="cyberpunk"] .document td { border-bottom-color: rgba(0, 255, 229, 0.15); color: #E2F4FF; }
+body[data-theme="cyberpunk"] .document tr:nth-child(even) td { background: rgba(0, 255, 229, 0.04); }
+
+body[data-theme="cyberpunk"] .callout {
+  background: rgba(255, 0, 153, 0.12);
+  border-left-color: #FF0099;
+  box-shadow: 0 0 18px rgba(255, 0, 153, 0.18);
+}
+body[data-theme="cyberpunk"] .callout-tip { background: rgba(0, 255, 133, 0.12); border-left-color: #00FF85; }
+body[data-theme="cyberpunk"] .callout-warning { background: rgba(255, 214, 0, 0.12); border-left-color: #FFD600; }
+body[data-theme="cyberpunk"] .callout-danger { background: rgba(255, 77, 109, 0.16); border-left-color: #FF4D6D; }
+body[data-theme="cyberpunk"] .callout-info { background: rgba(0, 196, 255, 0.12); border-left-color: #00C4FF; }
+body[data-theme="cyberpunk"] .callout .body { color: #E2F4FF; }
+body[data-theme="cyberpunk"] .callout .body strong { color: #00FFE5; }
+body[data-theme="cyberpunk"] .callout .icon { color: #FF0099; text-shadow: 0 0 8px currentColor; }
+
+body[data-theme="cyberpunk"] .document ul li::marker { color: #FF0099; }
+
+/* ============================================================
+   THEME · CARTOON — bold, playful, hand-drawn comic-book look
+   ============================================================ */
+body[data-theme="cartoon"] {
+  --bg: #FEF3C7;
+  --surface: #FFFFFF;
+  --softer: #FFFBEB;
+  --soft: #FEF3C7;
+  --text: #111827;
+  --muted: #4B5563;
+  --border: #111827;
+  --border-strong: #111827;
+  --accent: #DC2626;
+  --accent-soft: #FCA5A5;
+  --pos: #16A34A;
+  --neg: #DC2626;
+  --warn: #F59E0B;
+  --info: #2563EB;
+}
+body[data-theme="cartoon"] .preview { background: var(--bg); }
+body[data-theme="cartoon"] .document {
+  background: var(--bg);
+  font-family: var(--sans);
+  color: var(--text);
+}
+
+body[data-theme="cartoon"] .doc-header { border-bottom: 4px solid #111827; padding-bottom: 22px; }
+body[data-theme="cartoon"] .doc-header .eyebrow {
+  display: inline-block; background: #FBBF24; color: #111827;
+  padding: 4px 12px; border: 2px solid #111827; border-radius: 999px;
+  box-shadow: 3px 3px 0 #111827; transform: rotate(-1.5deg);
+  font-weight: 800;
+}
+body[data-theme="cartoon"] .doc-header h1 {
+  font-family: "Marker Felt Wide", "Marker Felt", "Comic Sans MS", "Chalkboard SE", var(--sans);
+  font-weight: 900; font-size: 52px; line-height: 1.05;
+  color: #DC2626;
+  -webkit-text-stroke: 2.5px #111827;
+  text-shadow: 5px 5px 0 #111827;
+  letter-spacing: -0.02em;
+  display: inline-block;
+  transform: rotate(-1deg);
+  margin-bottom: 18px;
+}
+body[data-theme="cartoon"] .doc-header .subtitle {
+  font-style: normal; font-weight: 700; color: #111827;
+  font-family: "Marker Felt", "Comic Sans MS", var(--sans);
+}
+body[data-theme="cartoon"] .doc-header .meta { font-weight: 700; color: #111827; }
+
+body[data-theme="cartoon"] .document > h1,
+body[data-theme="cartoon"] .document > h2 {
+  font-family: "Marker Felt Wide", "Marker Felt", "Comic Sans MS", var(--sans);
+  font-weight: 900; letter-spacing: -0.01em;
+}
+body[data-theme="cartoon"] .document > h2 {
+  display: inline-block;
+  background: #FBBF24; color: #111827;
+  padding: 8px 18px;
+  border: 3px solid #111827; border-radius: 8px;
+  box-shadow: 5px 5px 0 #111827;
+  transform: rotate(-1deg);
+  margin-top: 56px; margin-bottom: 24px;
+}
+body[data-theme="cartoon"] .document > h2::before { display: none; }
+body[data-theme="cartoon"] .document > h3 {
+  display: inline-block;
+  background: #2563EB; color: #FFFFFF;
+  padding: 4px 12px;
+  border: 2px solid #111827; border-radius: 6px;
+  box-shadow: 3px 3px 0 #111827;
+  text-transform: none; letter-spacing: 0; font-size: 14px;
+}
+body[data-theme="cartoon"] .document p strong { background: #FEF08A; padding: 0 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+body[data-theme="cartoon"] .document code {
+  background: #FBBF24; border: 2px solid #111827; color: #111827;
+  font-weight: 700; padding: 1px 6px;
+}
+body[data-theme="cartoon"] .document a {
+  color: #2563EB; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 2px;
+  border: 0;
+}
+body[data-theme="cartoon"] .document hr {
+  border: 0; height: 8px;
+  background: repeating-linear-gradient(45deg, #111827, #111827 6px, transparent 6px, transparent 14px);
+  border-radius: 4px;
+  margin: 56px 0;
+}
+
+body[data-theme="cartoon"] .kpi-grid {
+  background: #111827; border: 3px solid #111827; border-radius: 14px;
+  box-shadow: 6px 6px 0 #111827; gap: 3px; overflow: hidden;
+}
+body[data-theme="cartoon"] .kpi { padding: 24px 22px; }
+body[data-theme="cartoon"] .kpi:nth-child(4n+1) { background: #FBBF24; }
+body[data-theme="cartoon"] .kpi:nth-child(4n+2) { background: #60A5FA; }
+body[data-theme="cartoon"] .kpi:nth-child(4n+3) { background: #FCA5A5; }
+body[data-theme="cartoon"] .kpi:nth-child(4n)   { background: #86EFAC; }
+body[data-theme="cartoon"] .kpi .label { color: #111827; font-weight: 800; letter-spacing: 0.1em; }
+body[data-theme="cartoon"] .kpi .value {
+  font-family: var(--sans); font-weight: 900; color: #111827;
+  -webkit-text-stroke: 0.5px #111827;
+}
+body[data-theme="cartoon"] .kpi .delta {
+  display: inline-block; padding: 3px 10px; border: 2px solid #111827; border-radius: 999px;
+  background: #FFFFFF; font-weight: 800; box-shadow: 2px 2px 0 #111827;
+}
+body[data-theme="cartoon"] .kpi .delta.pos { background: #16A34A; color: #FFFFFF; }
+body[data-theme="cartoon"] .kpi .delta.neg { background: #DC2626; color: #FFFFFF; }
+
+body[data-theme="cartoon"] .card {
+  border: 3px solid #111827; border-radius: 14px;
+  box-shadow: 6px 6px 0 #111827;
+  background: #FFFFFF;
+}
+body[data-theme="cartoon"] .cards-grid > .card:nth-child(2n) { background: #FCA5A5; transform: rotate(-1deg); }
+body[data-theme="cartoon"] .cards-grid > .card:nth-child(3n) { background: #BAE6FD; transform: rotate(1deg); }
+body[data-theme="cartoon"] .cards-grid > .card:nth-child(4n) { background: #FDE68A; transform: rotate(-0.5deg); }
+body[data-theme="cartoon"] .card .title { font-weight: 900; font-family: "Marker Felt", "Comic Sans MS", var(--sans); }
+body[data-theme="cartoon"] .card .icon { font-size: 38px; }
+body[data-theme="cartoon"] .card .body { color: #111827; font-weight: 500; }
+
+body[data-theme="cartoon"] .schema {
+  background: #FFFFFF;
+  border: 3px solid #111827; border-radius: 14px;
+  box-shadow: 6px 6px 0 #111827;
+}
+body[data-theme="cartoon"] .schema svg [stroke] {
+  stroke-width: 2.5px;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+body[data-theme="cartoon"] .schema svg [stroke="var(--text)"] { stroke: #111827; }
+body[data-theme="cartoon"] .schema svg [stroke="var(--muted)"] { stroke: #4B5563; stroke-width: 2.5px; }
+body[data-theme="cartoon"] .schema svg [stroke="var(--border)"],
+body[data-theme="cartoon"] .schema svg [stroke="var(--border-strong)"] { stroke: #111827; stroke-width: 2px; }
+
+body[data-theme="cartoon"] .matrix {
+  border: 3px solid #111827; border-radius: 14px;
+  box-shadow: 6px 6px 0 #111827; overflow: hidden;
+}
+body[data-theme="cartoon"] .matrix .quad { border-color: #111827; border-width: 2px; }
+body[data-theme="cartoon"] .matrix .y-axis,
+body[data-theme="cartoon"] .matrix .x-axis,
+body[data-theme="cartoon"] .matrix .corner {
+  background: #FBBF24; color: #111827; font-weight: 900;
+}
+body[data-theme="cartoon"] .matrix .q-tr { background: #FCA5A5; }
+body[data-theme="cartoon"] .matrix .q-tr .quad-label { color: #111827; }
+body[data-theme="cartoon"] .matrix .quad li {
+  background: #FFFFFF; border: 2px solid #111827; border-radius: 6px;
+  box-shadow: 3px 3px 0 #111827; font-weight: 700;
+  margin-bottom: 8px;
+}
+
+body[data-theme="cartoon"] .document table {
+  border: 3px solid #111827; border-radius: 12px; overflow: hidden;
+  box-shadow: 5px 5px 0 #111827;
+}
+body[data-theme="cartoon"] .document th {
+  background: #FBBF24; color: #111827; font-weight: 900;
+  letter-spacing: 0; text-transform: none; font-size: 13px;
+}
+body[data-theme="cartoon"] .document td { border-bottom: 2px solid #111827; font-weight: 600; }
+body[data-theme="cartoon"] .document tr:last-child td { border-bottom: 0; }
+body[data-theme="cartoon"] .document tr:nth-child(even) td { background: #FEF3C7; }
+
+body[data-theme="cartoon"] .callout {
+  background: #FFFFFF;
+  border: 3px solid #111827; border-left-width: 8px;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 #111827;
+}
+body[data-theme="cartoon"] .callout-tip { background: #DCFCE7; }
+body[data-theme="cartoon"] .callout-warning { background: #FED7AA; }
+body[data-theme="cartoon"] .callout-danger { background: #FECACA; }
+body[data-theme="cartoon"] .callout-info { background: #BAE6FD; }
+body[data-theme="cartoon"] .callout .icon {
+  width: 28px; height: 28px; border: 2px solid #111827;
+  border-radius: 50%; background: #FFFFFF;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-family: var(--serif); font-weight: 900;
+  box-shadow: 2px 2px 0 #111827;
+}
+body[data-theme="cartoon"] .callout .body strong { background: transparent; padding: 0; }
+
+body[data-theme="cartoon"] .document ul li {
+  font-weight: 500;
+}
+body[data-theme="cartoon"] .document ul li::marker { color: #DC2626; font-size: 1.3em; }
 </style>
 </head>
 <body>
@@ -465,6 +877,11 @@ body.viewer-mode .preview .toolbar .viewer-exp {
     <div class="toolbar">
       <span>Preview</span>
       <span class="spacer"></span>
+      <select class="tb-select" id="theme-select" data-tb="theme" title="Visual style">
+        <option value="classic">Classic</option>
+        <option value="cyberpunk">Cyberpunk</option>
+        <option value="cartoon">Cartoon</option>
+      </select>
       <button id="btn-print" title="Print or save as PDF">Print / PDF</button>
       <button id="btn-export" title="Export rendered HTML">Export HTML</button>
     </div>
@@ -1164,13 +1581,13 @@ FENCE.flow = function (body) {
     const x = p.x - nodeW/2, y = p.y - nodeH/2;
     if (info.shape === 'diamond') {
       const cx = p.x, cy = p.y, dx = nodeW/2 + 12, dy = nodeH/2 + 10;
-      svg += `<polygon points="${cx},${cy-dy} ${cx+dx},${cy} ${cx},${cy+dy} ${cx-dx},${cy}" fill="white" stroke="var(--accent)" stroke-width="1.6"/>`;
+      svg += `<polygon points="${cx},${cy-dy} ${cx+dx},${cy} ${cx},${cy+dy} ${cx-dx},${cy}" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"/>`;
       svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" font-weight="600" fill="var(--accent)">${escapeHTML(label)}</text>`;
     } else if (info.shape === 'pill') {
       svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="${nodeH/2}" fill="var(--accent)"/>`;
       svg += `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="white">${escapeHTML(label)}</text>`;
     } else {
-      svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="3" fill="white" stroke="var(--text)" stroke-width="1.2"/>`;
+      svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="3" fill="var(--surface)" stroke="var(--text)" stroke-width="1.2"/>`;
       svg += `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" fill="var(--text)" font-weight="500">${escapeHTML(label)}</text>`;
     }
   }
@@ -1214,7 +1631,7 @@ FENCE.org = function (body) {
   let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
   function draw(n) {
     const x = n.x - nodeW/2, y = n.y - nodeH/2;
-    svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="3" fill="white" stroke="var(--text)" stroke-width="1.2"/>`;
+    svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="3" fill="var(--surface)" stroke="var(--text)" stroke-width="1.2"/>`;
     svg += `<text x="${n.x}" y="${n.y + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="500" fill="var(--text)">${escapeHTML(n.label)}</text>`;
     for (const c of n.children) {
       const midY = (n.y + nodeH/2 + c.y - nodeH/2) / 2;
@@ -1245,8 +1662,15 @@ function renderBlock(b) {
 function render(src) {
   const ast = parse(src);
   const accent = ast.meta && ast.meta.theme && ast.meta.theme.accent;
-  if (accent) document.documentElement.style.setProperty('--accent', accent);
-  else document.documentElement.style.removeProperty('--accent');
+  // Frontmatter accent only applies to the Classic theme. Other themes
+  // (cyberpunk, cartoon) own their palette to keep the design coherent.
+  const themeOverride = document.body.dataset.theme;
+  const useFrontmatterAccent = !themeOverride || themeOverride === 'classic';
+  if (accent && useFrontmatterAccent) {
+    document.documentElement.style.setProperty('--accent', accent);
+  } else {
+    document.documentElement.style.removeProperty('--accent');
+  }
   const out = [renderHeader(ast.meta || {})];
   for (const b of ast.blocks) out.push(renderBlock(b));
   return out.join('\n');
@@ -1291,10 +1715,13 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const title = ($src.value.match(/^title:\s*(.+)$/m) || [])[1] || 'document';
   const safeTitle = title.replace(/["\\]/g, '');
   const css = document.querySelector('style').textContent;
+  const theme = document.body.dataset.theme || 'classic';
+  const inlineAccent = document.documentElement.style.getPropertyValue('--accent');
+  const rootStyle = inlineAccent ? ` style="--accent: ${inlineAccent}"` : '';
   const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>${safeTitle.replace(/[<>&]/g, '')}</title>
+<html${rootStyle}><head><meta charset="UTF-8"><title>${safeTitle.replace(/[<>&]/g, '')}</title>
 <style>${css}</style></head>
-<body style="background:var(--bg)"><div class="document">${$out.innerHTML}</div></body></html>`;
+<body data-theme="${theme}" style="background:var(--bg);margin:0;"><div class="document">${$out.innerHTML}</div></body></html>`;
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1468,8 +1895,14 @@ function renderError(title, message) {
     <span class="brand">Deck DSL</span>
     <span class="viewer-title">Shared deck</span>
     <span class="spacer"></span>
+    <select class="tb-select" data-tb="theme" title="Visual style">
+      <option value="classic">Classic</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="cartoon">Cartoon</option>
+    </select>
     <button id="btn-back-editor">Open editor</button>
   `;
+  syncThemeSelects();
   document.getElementById('btn-back-editor').addEventListener('click', () => {
     location.hash = '';
     location.reload();
@@ -1506,9 +1939,15 @@ async function enterViewerModeIfPresent() {
     <span class="viewer-title">${escapeHTML(payload.title || 'Shared deck')}</span>
     <span class="spacer"></span>
     ${expStr ? `<span class="viewer-exp">Expires ${escapeHTML(expStr)}</span>` : ''}
+    <select class="tb-select" data-tb="theme" title="Visual style">
+      <option value="classic">Classic</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="cartoon">Cartoon</option>
+    </select>
     <button id="btn-edit-copy" title="Copy this deck into the editor">Open in editor</button>
     <button id="btn-print-shared">Print / PDF</button>
   `;
+  syncThemeSelects();
   document.getElementById('btn-print-shared').addEventListener('click', () => window.print());
   document.getElementById('btn-edit-copy').addEventListener('click', () => {
     try { localStorage.setItem(STORAGE_KEY, dsl); } catch (e) {}
@@ -1671,6 +2110,39 @@ $genGo.addEventListener('click', async () => {
   closeGenDialog();
   toast('Deck generated — your previous content is backed up locally');
 });
+
+// ============================================================
+//  Theme switching (classic / cyberpunk / cartoon)
+//  data-theme on <body> drives all variable overrides via CSS.
+//  Selects can live in either toolbar (editor or viewer mode), so
+//  we listen via event delegation on .preview and sync values.
+// ============================================================
+const THEME_KEY = 'deckdsl.theme.v1';
+const VALID_THEMES = ['classic', 'cyberpunk', 'cartoon'];
+
+function setTheme(theme) {
+  if (!VALID_THEMES.includes(theme)) theme = 'classic';
+  document.body.dataset.theme = theme;
+  syncThemeSelects();
+  try { localStorage.setItem(THEME_KEY, theme); } catch (_) {}
+}
+
+function syncThemeSelects() {
+  const current = document.body.dataset.theme || 'classic';
+  document.querySelectorAll('select.tb-select[data-tb="theme"]').forEach(el => {
+    if (el.value !== current) el.value = current;
+  });
+}
+
+document.querySelector('.preview').addEventListener('change', (e) => {
+  const t = e.target;
+  if (t && t.matches && t.matches('select.tb-select[data-tb="theme"]')) {
+    setTheme(t.value);
+    update();
+  }
+});
+
+setTheme(localStorage.getItem(THEME_KEY) || 'classic');
 
 // ============================================================
 //  Boot
