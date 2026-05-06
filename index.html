@@ -58,6 +58,18 @@ html, body {
   font-family: var(--sans); font-weight: 600;
 }
 .toolbar button:hover { background: rgba(255,255,255,0.06); }
+.toolbar a.tb-link {
+  display: inline-block; text-decoration: none;
+  color: inherit; border: 1px solid #4A5058;
+  border-radius: 4px; padding: 5px 11px; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  font-family: var(--sans); font-weight: 600;
+}
+.toolbar a.tb-link:hover { background: rgba(255,255,255,0.06); }
+.toolbar button.tb-primary {
+  background: var(--accent); color: white; border-color: var(--accent);
+}
+.toolbar button.tb-primary:hover { opacity: 0.9; background: var(--accent); }
 .editor textarea {
   flex: 1; width: 100%; min-height: 0;
   font-family: var(--mono); font-size: 13px; line-height: 1.6;
@@ -333,6 +345,40 @@ body.viewer-mode .preview .toolbar .viewer-exp {
 }
 .dialog select { font-family: var(--sans); font-size: 13px; }
 .dialog input:focus, .dialog select:focus { outline: 0; border-color: var(--accent); background: white; }
+.dialog textarea {
+  width: 100%; padding: 11px 13px;
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+  background: var(--softer); color: var(--text);
+  box-sizing: border-box; resize: vertical; min-height: 96px;
+}
+.dialog textarea:focus { outline: 0; border-color: var(--accent); background: white; }
+.dialog label a {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent); text-decoration: none; font-weight: 700; margin-left: 6px;
+}
+.dialog label a:hover { text-decoration: underline; }
+.gen-status {
+  font-size: 12px; line-height: 1.5; min-height: 20px; margin-top: 14px;
+  padding: 0; color: transparent;
+}
+.gen-status.loading { color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.gen-status.loading::before {
+  content: ""; display: inline-block;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: gen-spin 0.7s linear infinite;
+}
+.gen-status.error {
+  color: var(--neg); background: #FBE9E9;
+  padding: 9px 12px; border-radius: 4px; border-left: 2px solid var(--neg);
+}
+@keyframes gen-spin { to { transform: rotate(360deg); } }
+.dialog .footnote {
+  font-size: 11px; color: var(--muted); margin-top: 16px;
+  line-height: 1.5;
+}
+.dialog .footnote strong { color: var(--text); }
 .dialog .url-field { display: flex; gap: 8px; }
 .dialog .url-field input { flex: 1; min-width: 0; }
 .dialog button.primary {
@@ -410,6 +456,8 @@ body.viewer-mode .preview .toolbar .viewer-exp {
       <button id="btn-sample" title="Load sample document">Sample</button>
       <button id="btn-clear" title="Clear editor">Clear</button>
       <button id="btn-share" title="Generate a shareable link">Share</button>
+      <a id="dl-skill" class="tb-link" href="./dsl-deck.zip" download="dsl-deck.zip" title="Download the Claude Code skill (.zip)">Skill ↓</a>
+      <button id="btn-generate" class="tb-primary" title="Generate Deck DSL with AI (Bring Your Own Key — Gemini)">✨ Generate</button>
     </div>
     <textarea id="src" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
   </div>
@@ -454,6 +502,41 @@ body.viewer-mode .preview .toolbar .viewer-exp {
     <div class="actions">
       <button class="secondary" id="share-close">Close</button>
     </div>
+  </div>
+</div>
+
+<div class="dialog-backdrop" id="gen-dialog" role="dialog" aria-modal="true" aria-labelledby="gen-title">
+  <div class="dialog">
+    <h2 id="gen-title">Generate with AI</h2>
+    <p class="lead">Describe the deck you want — the AI uses the full Deck DSL skill spec to produce a complete document. Bring your own Google AI (Gemini) API key; it's saved in this browser only.</p>
+
+    <div class="field">
+      <label for="gen-prompt">What deck do you want?</label>
+      <textarea id="gen-prompt" rows="5" placeholder="Quarterly business review for Acme. Three growth levers: self-serve onboarding, AI copilot, mid-market tier. Q3 metrics: $4.2M ARR (+12%), 84 new logos (+5%), NPS 62, CAC $890 (+18%). Add a 2x2 to prioritize Q4 work."></textarea>
+    </div>
+
+    <div class="field">
+      <label for="gen-apikey">Google AI API key <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Get one →</a></label>
+      <input type="password" id="gen-apikey" placeholder="AIza..." autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="gen-model">Model</label>
+      <select id="gen-model">
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash · recommended</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite · cheapest</option>
+        <option value="gemini-2.5-pro">Gemini 2.5 Pro · best quality</option>
+      </select>
+    </div>
+
+    <div class="gen-status" id="gen-status"></div>
+
+    <div class="actions">
+      <button class="secondary" id="gen-cancel">Cancel</button>
+      <button class="primary" id="gen-go">Generate</button>
+    </div>
+
+    <p class="footnote"><strong>Privacy:</strong> the request goes directly from your browser to Google's API — nothing transits this site. The API key is stored in localStorage on your device only.</p>
   </div>
 </div>
 
@@ -1436,6 +1519,158 @@ async function enterViewerModeIfPresent() {
   update();
   return true;
 }
+
+// ============================================================
+//  Generate with AI — BYOK Gemini integration
+//  The request goes browser → Google directly. No backend needed.
+//  The skill spec (SKILL.md) is loaded as system instruction so Gemini
+//  knows the full DSL grammar, block types, and authoring heuristics.
+// ============================================================
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+const APIKEY_STORAGE = 'deckdsl.gemini.apikey';
+const MODEL_STORAGE = 'deckdsl.gemini.model';
+const SKILL_URL = './skills/dsl-deck/SKILL.md';
+
+let _skillCache = null;
+async function loadSkillContent() {
+  if (_skillCache) return _skillCache;
+  let r;
+  try { r = await fetch(SKILL_URL); }
+  catch (e) { throw new Error('Could not fetch the skill spec — open this page over http(s), not file://'); }
+  if (!r.ok) throw new Error('Skill spec not found at ' + SKILL_URL + ' (HTTP ' + r.status + ')');
+  _skillCache = await r.text();
+  return _skillCache;
+}
+
+function buildSystemPrompt(skillContent) {
+  return `You are an expert author of "Deck DSL" — a markdown-extended format for visual one-page decks that renders to professional HTML/CSS/SVG.
+
+Your task: produce a complete, polished Deck DSL document responding to the user's request. Use the right block types for the data shape (kpi for metrics, matrix for prioritization, flow for processes, timeline for milestones, funnel for conversion, pyramid for hierarchy of abstraction, org for reporting trees, cards for parallel value props, table for comparisons, sequence for actor interactions). Apply the authoring heuristics in the spec below.
+
+Output rules — ABSOLUTE:
+1. Output ONLY the Deck DSL source. Begin with the YAML frontmatter line "---". End at the last line of the deck.
+2. Do NOT wrap your output in markdown code fences (no \`\`\`markdown ... \`\`\` envelope).
+3. Do NOT add explanations, preambles, or trailing commentary. The first character of your reply must be "-" (start of "---") and the last meaningful character must be the end of the deck body.
+4. Frontmatter values that contain a colon, "#", or other YAML-reserved chars must be quoted (e.g. accent: "#7A1F2B").
+5. Pick a sensible accent color matching the topic. Default to "#7A1F2B" if unsure.
+
+The complete spec follows. Treat every rule, syntax detail, and "common mistakes" warning as binding.
+
+---DECK DSL SPEC---
+
+${skillContent}`;
+}
+
+async function callGemini(model, apiKey, systemPrompt, userPrompt, signal) {
+  const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const body = {
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: 8192, responseMimeType: 'text/plain' },
+  };
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    let msg = 'API error ' + r.status;
+    try { const j = JSON.parse(txt); if (j.error && j.error.message) msg = j.error.message; } catch (_) {}
+    throw new Error(msg);
+  }
+  const data = await r.json();
+  const cand = data.candidates && data.candidates[0];
+  if (!cand) throw new Error('No candidates in response (possibly safety-blocked)');
+  if (cand.finishReason && cand.finishReason !== 'STOP' && cand.finishReason !== 'MAX_TOKENS') {
+    throw new Error('Generation stopped: ' + cand.finishReason);
+  }
+  const parts = cand.content && cand.content.parts;
+  const text = (parts || []).map(p => p.text || '').join('');
+  if (!text.trim()) throw new Error('Empty response — try a more detailed prompt');
+  return text;
+}
+
+function stripCodeFence(text) {
+  const t = text.trim();
+  // Sometimes the model wraps the deck in ```markdown ... ``` despite instructions
+  const m = t.match(/^```(?:[\w-]+)?\s*\n([\s\S]*?)\n```\s*$/);
+  return m ? m[1].trim() : t;
+}
+
+const $genDialog = document.getElementById('gen-dialog');
+const $genApiKey = document.getElementById('gen-apikey');
+const $genModel = document.getElementById('gen-model');
+const $genPrompt = document.getElementById('gen-prompt');
+const $genGo = document.getElementById('gen-go');
+const $genCancel = document.getElementById('gen-cancel');
+const $genStatus = document.getElementById('gen-status');
+const $btnGenerate = document.getElementById('btn-generate');
+
+function setGenStatus(msg, kind) {
+  $genStatus.textContent = msg || '';
+  $genStatus.className = 'gen-status' + (kind ? ' ' + kind : '');
+}
+
+function openGenDialog() {
+  $genApiKey.value = localStorage.getItem(APIKEY_STORAGE) || '';
+  $genModel.value = localStorage.getItem(MODEL_STORAGE) || 'gemini-2.5-flash';
+  setGenStatus('');
+  $genGo.disabled = false;
+  $genCancel.disabled = false;
+  $genDialog.classList.add('open');
+  setTimeout(() => { (!$genApiKey.value ? $genApiKey : $genPrompt).focus(); }, 50);
+}
+function closeGenDialog() { $genDialog.classList.remove('open'); }
+
+$btnGenerate.addEventListener('click', openGenDialog);
+$genCancel.addEventListener('click', closeGenDialog);
+$genDialog.addEventListener('click', (e) => { if (e.target === $genDialog && !$genGo.disabled) closeGenDialog(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $genDialog.classList.contains('open') && !$genGo.disabled) closeGenDialog();
+});
+
+$genGo.addEventListener('click', async () => {
+  const apiKey = $genApiKey.value.trim();
+  const prompt = $genPrompt.value.trim();
+  const model = $genModel.value;
+  if (!apiKey) { setGenStatus('Add your API key to continue.', 'error'); $genApiKey.focus(); return; }
+  if (!prompt) { setGenStatus('Tell the AI what to generate.', 'error'); $genPrompt.focus(); return; }
+
+  try { localStorage.setItem(APIKEY_STORAGE, apiKey); localStorage.setItem(MODEL_STORAGE, model); } catch (_) {}
+
+  $genGo.disabled = true; $genCancel.disabled = true;
+  setGenStatus('Loading skill spec…', 'loading');
+  let skill;
+  try { skill = await loadSkillContent(); }
+  catch (e) {
+    setGenStatus(e.message, 'error');
+    $genGo.disabled = false; $genCancel.disabled = false;
+    return;
+  }
+
+  setGenStatus('Generating with ' + model + '… (10–30 s)', 'loading');
+  let dsl;
+  try {
+    dsl = await callGemini(model, apiKey, buildSystemPrompt(skill), prompt);
+    dsl = stripCodeFence(dsl);
+  } catch (e) {
+    let msg = e.message || String(e);
+    if (/api key/i.test(msg) || /API_KEY/i.test(msg)) msg = 'Invalid API key. Check the key from Google AI Studio.';
+    else if (/quota/i.test(msg)) msg = 'Quota exceeded for this API key.';
+    setGenStatus(msg, 'error');
+    $genGo.disabled = false; $genCancel.disabled = false;
+    return;
+  }
+
+  // Backup current editor in case the user wants to undo
+  try { localStorage.setItem(STORAGE_KEY + '.before-gen', $src.value); } catch (_) {}
+  $src.value = dsl;
+  update();
+  closeGenDialog();
+  toast('Deck generated — your previous content is backed up locally');
+});
 
 // ============================================================
 //  Boot

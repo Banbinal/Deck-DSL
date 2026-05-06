@@ -4,7 +4,14 @@ A standalone editor for writing professionally-styled visual one-pagers. Source 
 
 ## What it does
 
-Write a markdown-extended document with embedded visual blocks — KPI tiles, timelines, 2×2 matrices, decision flows, sequence diagrams, funnels, pyramids, org charts, cards, comparison tables — and see it render in real time as a consulting-grade page. Print to PDF, export standalone HTML, or share via a self-contained link.
+Write a markdown-extended document with embedded visual blocks — KPI tiles, timelines, 2×2 matrices, decision flows, sequence diagrams, funnels, pyramids, org charts, cards, comparison tables — and see it render in real time as a consulting-grade page. Print to PDF, export standalone HTML, share via a self-contained link, or have an LLM author the DSL for you with the **Generate with AI** button (BYOK Gemini).
+
+## Toolbar features
+
+- **Sample / Clear** — load the example deck or wipe the editor.
+- **Share** — encode the deck into a JWT-formatted URL fragment and copy to clipboard. Optional expiration (1/7/30/90 days). No backend needed; see *Sharing decks* below.
+- **Skill ↓** — download the Claude Code skill as a `.zip` (`dsl-deck.zip`). Extract into `~/.claude/skills/` to give Claude Code the DSL knowledge.
+- **✨ Generate** — describe a deck in plain language; an LLM (your-own-key Google Gemini) produces complete Deck DSL using the skill spec as system prompt. Key + model preference are saved in localStorage; requests go directly browser → Google.
 
 ## Try it
 
