@@ -1,0 +1,15 @@
+# Claude Code local state — settings, session artifacts, project-scoped installs.
+# The canonical skill lives in skills/dsl-deck/; users copy it into .claude/skills/
+# (or ~/.claude/skills/) to install — see README.md.
+.claude/
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
+*~

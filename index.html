@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deck DSL — Live Editor</title>
+<style>
+:root {
+  --bg: #FBFAF7;
+  --surface: #FFFFFF;
+  --text: #1F2328;
+  --muted: #6A6F77;
+  --soft: #F2EFE8;
+  --softer: #F7F5EF;
+  --border: #E5E2DA;
+  --border-strong: #C9C4B5;
+  --accent: #7A1F2B;
+  --accent-soft: #F5E9EC;
+  --accent-text: #FFFFFF;
+  --pos: #2B6A3E;
+  --neg: #A22B2B;
+  --warn: #B5781A;
+  --info: #2C5A8A;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
+  --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%;
+  font-family: var(--sans); color: var(--text);
+  background: #1A1D22;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
+.app {
+  display: grid; grid-template-columns: minmax(360px, 4fr) 6fr;
+  height: 100vh; gap: 1px; background: #1A1D22;
+}
+.pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.editor { background: #232830; }
+.preview { background: var(--bg); }
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; height: 44px; flex-shrink: 0;
+  background: #1A1D22; color: #C9CCD1;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;
+  border-bottom: 1px solid #2A2F36;
+}
+.preview .toolbar { background: #2A2F36; color: #E5E2DA; border-bottom: 1px solid #3A4048; }
+.toolbar .brand { color: var(--accent); margin-right: 6px; font-family: var(--serif); font-style: italic; font-size: 14px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.preview .toolbar .brand { color: #E5C8CD; }
+.toolbar .spacer { flex: 1; }
+.toolbar button {
+  background: transparent; color: inherit; border: 1px solid #4A5058;
+  border-radius: 4px; padding: 5px 11px; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  font-family: var(--sans); font-weight: 600;
+}
+.toolbar button:hover { background: rgba(255,255,255,0.06); }
+.editor textarea {
+  flex: 1; width: 100%; min-height: 0;
+  font-family: var(--mono); font-size: 13px; line-height: 1.6;
+  border: 0; outline: 0; resize: none;
+  padding: 24px 28px;
+  background: #232830; color: #DCDFE3;
+  tab-size: 2;
+  caret-color: var(--accent);
+}
+.editor textarea::selection { background: rgba(122,31,43,0.45); }
+.preview-scroll { flex: 1; overflow: auto; min-height: 0; }
+.document {
+  background: var(--bg);
+  padding: 64px 72px 96px;
+  max-width: 920px; margin: 0 auto;
+  font-family: var(--sans); font-size: 14px; line-height: 1.65; color: var(--text);
+}
+
+/* Frontmatter header */
+.doc-header { margin-bottom: 48px; padding-bottom: 28px; border-bottom: 1px solid var(--border); }
+.doc-header .eyebrow {
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: 14px;
+}
+.doc-header h1 {
+  font-family: var(--serif); font-size: 42px; font-weight: 600; line-height: 1.12;
+  margin: 0 0 12px; letter-spacing: -0.012em;
+}
+.doc-header .subtitle {
+  font-family: var(--serif); font-size: 20px; font-style: italic; color: var(--muted);
+  margin: 0 0 22px; font-weight: 400;
+}
+.doc-header .meta {
+  display: flex; flex-wrap: wrap; gap: 22px; font-size: 11px; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
+}
+.doc-header .meta strong { color: var(--text); font-weight: 700; }
+
+/* Body headings (# = h1, ## = h2, ### = h3) */
+.document > h1 {
+  font-family: var(--serif); font-size: 30px; font-weight: 600;
+  margin: 56px 0 18px; letter-spacing: -0.01em;
+}
+.document > h2 {
+  font-family: var(--serif); font-size: 25px; font-weight: 600;
+  margin: 52px 0 18px; color: var(--text); letter-spacing: -0.005em;
+  display: flex; align-items: center; gap: 14px;
+}
+.document > h2::before {
+  content: ""; display: inline-block; width: 28px; height: 2px;
+  background: var(--accent); flex-shrink: 0;
+}
+.document > h3 {
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  margin: 36px 0 10px; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.16em;
+}
+.document > h4 {
+  font-family: var(--sans); font-size: 14px; font-weight: 700;
+  margin: 24px 0 8px;
+}
+
+.document p { margin: 0 0 16px; }
+.document p strong { font-weight: 700; color: var(--text); }
+.document p em { font-style: italic; }
+.document code, .document p code, .document li code {
+  font-family: var(--mono); font-size: 12px;
+  background: var(--soft); color: var(--text);
+  padding: 2px 6px; border-radius: 3px;
+}
+.document a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+.document hr { border: 0; border-top: 1px solid var(--border); margin: 48px 0; }
+
+.document ul { padding-left: 22px; margin: 0 0 18px; }
+.document ul li { margin-bottom: 6px; }
+.document ul li::marker { color: var(--accent); }
+
+/* Callout */
+.callout {
+  display: flex; gap: 14px; padding: 16px 20px; border-radius: 6px;
+  background: var(--accent-soft); border-left: 3px solid var(--accent);
+  margin: 22px 0;
+}
+.callout.callout-tip { background: #EFF5EE; border-color: var(--pos); }
+.callout.callout-warning { background: #FBF1E1; border-color: var(--warn); }
+.callout.callout-danger { background: #FBE9E9; border-color: var(--neg); }
+.callout.callout-info { background: #ECF1F7; border-color: var(--info); }
+.callout .icon {
+  font-family: var(--serif); font-weight: 700; font-size: 18px; line-height: 1.4;
+  flex-shrink: 0; width: 22px; text-align: center; color: var(--accent);
+}
+.callout-tip .icon { color: var(--pos); }
+.callout-warning .icon { color: var(--warn); }
+.callout-danger .icon { color: var(--neg); }
+.callout-info .icon { color: var(--info); }
+.callout .body { flex: 1; }
+.callout .body p { margin: 0 0 8px; }
+.callout .body p:last-child { margin-bottom: 0; }
+.callout .body strong:first-child { display: block; margin-bottom: 4px; }
+
+/* KPI grid */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; margin: 26px 0;
+}
+.kpi { background: var(--surface); padding: 22px 22px; }
+.kpi .label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--muted); font-weight: 700; margin-bottom: 10px;
+}
+.kpi .value {
+  font-family: var(--serif); font-size: 30px; font-weight: 600;
+  color: var(--text); line-height: 1.1; letter-spacing: -0.01em;
+}
+.kpi .delta { display: inline-block; margin-top: 10px; font-size: 12px; font-weight: 600; }
+.kpi .delta.pos { color: var(--pos); }
+.kpi .delta.neg { color: var(--neg); }
+.kpi .delta.flat { color: var(--muted); }
+
+/* Cards */
+.cards-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px; margin: 26px 0;
+}
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 22px 22px; transition: transform 0.12s ease;
+}
+.card .icon { font-size: 26px; margin-bottom: 10px; line-height: 1; }
+.card .title { font-family: var(--serif); font-weight: 700; font-size: 17px; margin-bottom: 6px; }
+.card .body { color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+/* Table */
+.document table { width: 100%; border-collapse: collapse; margin: 26px 0; font-size: 13px; }
+.document th {
+  text-align: left; padding: 12px 14px;
+  background: var(--text); color: var(--bg);
+  font-weight: 600; letter-spacing: 0.06em; font-size: 11px; text-transform: uppercase;
+}
+.document td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.document tr:last-child td { border-bottom: 0; }
+.document tr:nth-child(even) td { background: var(--softer); }
+
+/* Schema canvas wrapper */
+.schema {
+  margin: 28px 0; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 28px 24px; overflow: hidden;
+}
+.schema svg { width: 100%; height: auto; display: block; }
+.schema .caption {
+  font-size: 10px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.14em; font-weight: 700; margin-bottom: 14px;
+}
+
+/* Matrix 2x2 */
+.matrix {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr;
+  grid-template-rows: 1fr 1fr 50px;
+  margin: 28px 0; min-height: 420px;
+  border: 1px solid var(--border); background: var(--surface);
+  border-radius: 6px; overflow: hidden;
+}
+.matrix .y-axis {
+  grid-column: 1; grid-row: 1 / 3;
+  display: flex; align-items: center; justify-content: center;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--muted); font-weight: 700;
+  background: var(--soft);
+}
+.matrix .x-axis {
+  grid-column: 2 / 4; grid-row: 3;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--muted); font-weight: 700;
+  background: var(--soft);
+}
+.matrix .corner { grid-column: 1; grid-row: 3; background: var(--soft); }
+.matrix .quad {
+  padding: 18px 20px; position: relative; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.matrix .quad-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--muted); font-weight: 700; margin-bottom: 14px;
+}
+.matrix .quad ul {
+  list-style: none; padding: 0; margin: 0;
+  font-size: 13px; line-height: 1.4;
+}
+.matrix .quad li {
+  padding: 7px 12px; background: var(--softer);
+  border-left: 2px solid var(--border-strong); margin-bottom: 6px;
+  border-radius: 0 3px 3px 0;
+}
+.matrix .q-tl { grid-column: 2; grid-row: 1; border-right: 1px solid var(--border); }
+.matrix .q-tr { grid-column: 3; grid-row: 1; background: var(--accent-soft); }
+.matrix .q-tr .quad-label { color: var(--accent); }
+.matrix .q-tr li { background: var(--surface); border-left-color: var(--accent); }
+.matrix .q-bl { grid-column: 2; grid-row: 2; border-right: 1px solid var(--border); }
+.matrix .q-br { grid-column: 3; grid-row: 2; }
+
+.preview-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.preview-scroll::-webkit-scrollbar-thumb { background: #C9C4B5; border-radius: 5px; }
+.preview-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@media print {
+  html, body { background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .app { display: block; height: auto; grid-template-columns: none; }
+  .editor, .toolbar { display: none !important; }
+  .preview, .preview-scroll { overflow: visible !important; height: auto; }
+  .document { max-width: none; padding: 32px 40px; margin: 0; }
+  .schema, .kpi-grid, .matrix, .card, table { break-inside: avoid; page-break-inside: avoid; }
+  .document > h2, .document > h1 { break-after: avoid; page-break-after: avoid; }
+}
+
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 50vh 1fr; }
+  .document { padding: 32px 24px 64px; }
+  .doc-header h1 { font-size: 32px; }
+}
+
+/* Viewer mode (read-only shared deck) */
+body.viewer-mode .editor { display: none !important; }
+body.viewer-mode .app { grid-template-columns: 1fr; }
+body.viewer-mode .preview .toolbar .viewer-title {
+  font-family: var(--sans); font-weight: 600; font-size: 12px;
+  text-transform: none; letter-spacing: 0; color: #E5E2DA;
+  display: flex; align-items: center; gap: 8px;
+}
+body.viewer-mode .preview .toolbar .viewer-title::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+body.viewer-mode .preview .toolbar .viewer-exp {
+  font-size: 10px; letter-spacing: 0.1em; color: #9AA0A8;
+  font-weight: 500; text-transform: uppercase;
+}
+
+/* Dialog */
+.dialog-backdrop {
+  position: fixed; inset: 0; background: rgba(20, 22, 26, 0.55);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.dialog-backdrop.open { display: flex; }
+.dialog {
+  background: var(--surface); border-radius: 8px;
+  width: 100%; max-width: 560px; padding: 30px 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  font-family: var(--sans); color: var(--text);
+}
+.dialog h2 {
+  font-family: var(--serif); font-size: 22px; margin: 0 0 6px;
+  font-weight: 600; letter-spacing: -0.005em;
+}
+.dialog .lead { color: var(--muted); font-size: 13px; margin: 0 0 22px; line-height: 1.55; }
+.dialog .field { margin-bottom: 16px; }
+.dialog label {
+  display: block; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); font-weight: 700; margin-bottom: 8px;
+}
+.dialog input, .dialog select {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--mono); font-size: 12px;
+  background: var(--softer); color: var(--text);
+  box-sizing: border-box;
+}
+.dialog select { font-family: var(--sans); font-size: 13px; }
+.dialog input:focus, .dialog select:focus { outline: 0; border-color: var(--accent); background: white; }
+.dialog .url-field { display: flex; gap: 8px; }
+.dialog .url-field input { flex: 1; min-width: 0; }
+.dialog button.primary {
+  background: var(--accent); color: white; border: 0;
+  padding: 10px 18px; border-radius: 4px;
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+}
+.dialog button.primary:hover { opacity: 0.92; }
+.dialog button.secondary {
+  background: transparent; color: var(--text); border: 1px solid var(--border-strong);
+  padding: 10px 18px; border-radius: 4px;
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+}
+.dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+.dialog .info {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  background: var(--softer); padding: 10px 12px;
+  border-radius: 4px; margin-top: 10px;
+  border-left: 2px solid var(--accent);
+}
+.dialog .info strong { color: var(--text); font-weight: 700; }
+.dialog .info .warn { color: var(--warn); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1F2328; color: #FBFAF7;
+  padding: 11px 20px; border-radius: 4px;
+  font-size: 12px; letter-spacing: 0.06em; font-weight: 600;
+  z-index: 200; opacity: 0; pointer-events: none;
+  transition: opacity 0.18s ease;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+}
+.toast.show { opacity: 1; }
+
+/* Error state for failed token decode */
+.error-card {
+  margin: 80px auto; max-width: 540px; padding: 36px 32px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; text-align: center;
+}
+.error-card .icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent);
+  font-family: var(--serif); font-weight: 700; font-size: 24px;
+  margin-bottom: 16px;
+}
+.error-card h2 {
+  font-family: var(--serif); font-size: 22px; margin: 0 0 8px;
+  font-weight: 600;
+}
+.error-card p { color: var(--muted); font-size: 14px; margin: 0 0 24px; line-height: 1.55; }
+.error-card button {
+  background: var(--accent); color: white; border: 0;
+  padding: 10px 22px; border-radius: 4px;
+  font-family: var(--sans); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+}
+
+@media print {
+  .viewer-banner, .dialog-backdrop, .toast { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="pane editor">
+    <div class="toolbar">
+      <span class="brand">Deck DSL</span>
+      <span>Source</span>
+      <span class="spacer"></span>
+      <button id="btn-sample" title="Load sample document">Sample</button>
+      <button id="btn-clear" title="Clear editor">Clear</button>
+      <button id="btn-share" title="Generate a shareable link">Share</button>
+    </div>
+    <textarea id="src" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+  </div>
+  <div class="pane preview">
+    <div class="toolbar">
+      <span>Preview</span>
+      <span class="spacer"></span>
+      <button id="btn-print" title="Print or save as PDF">Print / PDF</button>
+      <button id="btn-export" title="Export rendered HTML">Export HTML</button>
+    </div>
+    <div class="preview-scroll">
+      <div id="output" class="document"></div>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-backdrop" id="share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
+  <div class="dialog">
+    <h2 id="share-title">Share this deck</h2>
+    <p class="lead">Anyone with this link can view the deck — the source is encoded directly in the URL, no server involved.</p>
+
+    <div class="field">
+      <label for="share-expires">Expiration</label>
+      <select id="share-expires">
+        <option value="0">Never expires</option>
+        <option value="1">After 1 day</option>
+        <option value="7">After 7 days</option>
+        <option value="30">After 30 days</option>
+        <option value="90">After 90 days</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="share-url">Share link</label>
+      <div class="url-field">
+        <input type="text" id="share-url" readonly>
+        <button class="primary" id="share-copy">Copy</button>
+      </div>
+      <div class="info" id="share-info"></div>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" id="share-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="sample-doc" type="text/plain">---
+title: Q4 2026 Strategy Review
+subtitle: Path to scale — three levers, one quarter
+eyebrow: Strategy Team · Confidential
+author: Strategy Office
+date: 2026-05-06
+theme:
+  accent: "#7A1F2B"
+---
+
+# Executive summary
+
+We outperformed our **revenue target by 12%** this quarter, but customer acquisition cost crept up 18%. The plan for next quarter focuses on three levers: **self-serve onboarding**, AI-assisted activation, and a mid-market tier launch.
+
+> [!tip]
+> Biggest unlock
+> Product-led growth. We expect 30% of new logos via self-serve by year end, with CAC dropping below $400.
+
+## Headline metrics
+
+```kpi
+Revenue | $4.2M | +12%
+New logos | 84 | +5%
+NPS | 62 | +8
+CAC | $890 | +18%
+```
+
+## How we got here
+
+```timeline
+2026 Q1 | Discovery
+2026 Q2 | Pilot launch
+2026 Q3 | GA release
+2026 Q4 | Scale
+```
+
+## Where to focus
+
+```matrix
+x: Effort | low | high
+y: Impact | low | high
+Self-serve onboarding | low | high
+Enterprise tier | high | high
+Logo refresh | low | low
+SOC2 audit | high | low
+AI copilot | high | high
+Pricing experiment | low | low
+```
+
+## Decision flow
+
+```flow
+[Lead] -> {Qualified?}
+{Qualified?} -yes-> [Demo]
+{Qualified?} -no-> [Nurture]
+[Demo] -> [Trial]
+[Trial] -> (Close)
+```
+
+## Quarterly funnel
+
+```funnel
+Visitors | 120000
+Sign-ups | 18000
+Activated | 6500
+Paying | 920
+```
+
+## Roadmap pillars
+
+```pyramid
+Vision: Make data accessible to every team
+Strategy: Self-serve + AI-assisted onboarding
+Tactics: Onboarding redesign, copilot, billing v2
+Execution: 3 squads, 12-week sprints
+```
+
+## Why it matters
+
+```cards
+Speed | Cut time-to-value from 21 days to 4 | ⚡
+Cost | 30% lower implementation cost vs incumbent | ◆
+Trust | SOC2 + region-locked storage | ✦
+```
+
+## Plan comparison
+
+```table
+| Tier | Seats | Storage | SLA | Price |
+| Starter | 5 | 10 GB | 99.0% | $29 |
+| Team | 25 | 100 GB | 99.5% | $99 |
+| Enterprise | unlimited | 1 TB | 99.95% | Contact |
+```
+
+## Sequence: trial to close
+
+```sequence
+Prospect -> Sales: Books demo
+Sales -> Prospect: Sends trial link
+Prospect -> Product: Activates
+Product --> Sales: Notifies activation
+Sales -> Prospect: Closes deal
+```
+
+## Org
+
+```org
+CEO
+- CTO
+  - Eng Lead
+  - Platform Lead
+- COO
+  - Sales
+  - CS
+- CFO
+```
+
+> [!warning]
+> Hiring pipeline is thin in Platform — flag to recruiting before June.
+
+---
+
+*Reviewed by leadership team, week of May 6.*
+</script>
+
+<script>
+'use strict';
+
+// ============================================================
+//  YAML (frontmatter) — supports flat and one nested level
+// ============================================================
+function parseYAML(text) {
+  const out = {};
+  let parent = null;
+  for (const raw of text.split('\n')) {
+    if (!raw.trim() || /^\s*#/.test(raw)) continue;
+    const indent = raw.length - raw.replace(/^\s+/, '').length;
+    const m = raw.trim().match(/^([\w.-]+):\s*(.*)$/);
+    if (!m) continue;
+    const key = m[1];
+    let val = m[2].trim();
+    val = val.replace(/^["']|["']$/g, '');
+    if (indent === 0) {
+      if (val === '') { out[key] = {}; parent = out[key]; }
+      else { out[key] = val; parent = null; }
+    } else if (parent) {
+      parent[key] = val;
+    }
+  }
+  return out;
+}
+
+// ============================================================
+//  Block parser
+// ============================================================
+function parse(src) {
+  const lines = src.replace(/\r\n?/g, '\n').split('\n');
+  let i = 0;
+  let meta = {};
+  const blocks = [];
+
+  if (lines[0] && lines[0].trim() === '---') {
+    let j = 1;
+    while (j < lines.length && lines[j].trim() !== '---') j++;
+    meta = parseYAML(lines.slice(1, j).join('\n'));
+    i = j + 1;
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === '') { i++; continue; }
+
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) { blocks.push({ type: 'heading', level: h[1].length, text: h[2] }); i++; continue; }
+
+    const fence = line.match(/^```([A-Za-z0-9_-]+)?\s*$/);
+    if (fence) {
+      const lang = (fence[1] || '').toLowerCase();
+      const start = i + 1;
+      let end = start;
+      while (end < lines.length && !/^```\s*$/.test(lines[end])) end++;
+      blocks.push({ type: 'fence', lang, body: lines.slice(start, end).join('\n') });
+      i = end + 1;
+      continue;
+    }
+
+    if (line.startsWith('>')) {
+      let kind = 'note';
+      const buf = [];
+      while (i < lines.length && lines[i].startsWith('>')) {
+        let l = lines[i].replace(/^>\s?/, '');
+        const k = l.match(/^\[!(\w+)\]\s*(.*)$/i);
+        if (k) { kind = k[1].toLowerCase(); l = k[2]; }
+        buf.push(l);
+        i++;
+      }
+      blocks.push({ type: 'callout', kind, body: buf.join('\n').trim() });
+      continue;
+    }
+
+    if (/^---+\s*$/.test(line)) { blocks.push({ type: 'hr' }); i++; continue; }
+
+    if (/^[-*]\s/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*]\s+/, ''));
+        i++;
+      }
+      blocks.push({ type: 'list', items });
+      continue;
+    }
+
+    const buf = [];
+    while (i < lines.length) {
+      const ln = lines[i];
+      if (ln.trim() === '') break;
+      if (/^#{1,4}\s/.test(ln)) break;
+      if (/^```/.test(ln)) break;
+      if (ln.startsWith('>')) break;
+      if (/^[-*]\s/.test(ln)) break;
+      if (/^---+\s*$/.test(ln)) break;
+      buf.push(ln);
+      i++;
+    }
+    if (buf.length) blocks.push({ type: 'paragraph', text: buf.join(' ') });
+  }
+
+  return { meta, blocks };
+}
+
+// ============================================================
+//  Inline marks
+// ============================================================
+function escapeHTML(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function inline(text) {
+  let s = escapeHTML(text);
+  s = s.replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`);
+  s = s.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s.,;:)!?]|$)/g, '$1<em>$2</em>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, label, url) => {
+    const u = url.trim();
+    const safe = (/^(https?:|mailto:|#|\/|\.\/|\.\.\/)/i.test(u) ? u : '#').replace(/"/g, '%22');
+    return `<a href="${safe}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+  });
+  return s;
+}
+
+// ============================================================
+//  Block renderers
+// ============================================================
+const ICONS = { note: '✦', tip: '◆', warning: '!', danger: '✖', info: 'i' };
+
+function renderHeader(meta) {
+  if (!meta.title && !meta.subtitle && !meta.eyebrow) return '';
+  const parts = [];
+  if (meta.author) parts.push(`<span><strong>${escapeHTML(meta.author)}</strong></span>`);
+  if (meta.date) parts.push(`<span>${escapeHTML(meta.date)}</span>`);
+  const metaLine = parts.length ? `<div class="meta">${parts.join('')}</div>` : '';
+  const eyebrow = meta.eyebrow ? `<div class="eyebrow">${escapeHTML(meta.eyebrow)}</div>` : '';
+  const title = meta.title ? `<h1>${inline(meta.title)}</h1>` : '';
+  const sub = meta.subtitle ? `<p class="subtitle">${inline(meta.subtitle)}</p>` : '';
+  return `<header class="doc-header">${eyebrow}${title}${sub}${metaLine}</header>`;
+}
+
+function renderHeading(b) {
+  const lvl = Math.min(Math.max(b.level, 1), 4);
+  return `<h${lvl}>${inline(b.text)}</h${lvl}>`;
+}
+
+function renderParagraph(b) { return `<p>${inline(b.text)}</p>`; }
+function renderHR() { return '<hr>'; }
+function renderList(b) {
+  return `<ul>${b.items.map(it => `<li>${inline(it)}</li>`).join('')}</ul>`;
+}
+
+function renderCallout(b) {
+  const lines = b.body.split('\n').map(l => l.trim()).filter(Boolean);
+  let title = '', body = b.body;
+  if (lines.length > 1 && lines[0].length < 80 && !/[.!?]$/.test(lines[0])) {
+    title = lines[0];
+    body = lines.slice(1).join('\n');
+  }
+  const icon = ICONS[b.kind] || ICONS.note;
+  const titleH = title ? `<strong>${inline(title)}</strong>` : '';
+  const bodyHTML = body.split(/\n\s*\n/).map(p => `<p>${inline(p.replace(/\n/g, ' '))}</p>`).join('');
+  return `<div class="callout callout-${b.kind}"><div class="icon">${icon}</div><div class="body">${titleH}${bodyHTML}</div></div>`;
+}
+
+// ============================================================
+//  Fenced visual blocks
+// ============================================================
+const FENCE = {};
+
+function renderFence(b) {
+  const fn = FENCE[b.lang];
+  if (!fn) return `<pre style="background:var(--soft);padding:14px;border-radius:6px;font-family:var(--mono);font-size:12px;overflow-x:auto;">${escapeHTML(b.body)}</pre>`;
+  try { return fn(b.body); }
+  catch (e) {
+    return `<div class="schema"><div class="caption">${escapeHTML(b.lang)} — error</div><pre style="color:var(--neg);font-family:var(--mono);font-size:12px;white-space:pre-wrap;">${escapeHTML(String(e && e.message || e))}</pre></div>`;
+  }
+}
+
+// --- KPI ----------------------------------------------------
+FENCE.kpi = function (body) {
+  const rows = body.split('\n').filter(l => l.trim()).map(l =>
+    l.replace(/^[-*]\s*/, '').split('|').map(s => s.trim())
+  );
+  const html = rows.map(r => {
+    const [label, value, delta] = [r[0] || '', r[1] || '', r[2] || ''];
+    let cls = 'flat';
+    if (/^[+▲↑]/.test(delta)) cls = 'pos';
+    else if (/^[-−▼↓]/.test(delta)) cls = 'neg';
+    return `<div class="kpi"><div class="label">${escapeHTML(label)}</div><div class="value">${escapeHTML(value)}</div>${delta ? `<div class="delta ${cls}">${escapeHTML(delta)}</div>` : ''}</div>`;
+  }).join('');
+  return `<div class="kpi-grid">${html}</div>`;
+};
+
+// --- Cards --------------------------------------------------
+FENCE.cards = function (body) {
+  const rows = body.split('\n').filter(l => l.trim()).map(l => {
+    const parts = l.replace(/^[-*]\s*/, '').split('|').map(s => s.trim());
+    return { title: parts[0] || '', body: parts[1] || '', icon: parts[2] || '' };
+  });
+  const html = rows.map(r => `<div class="card">${r.icon ? `<div class="icon">${escapeHTML(r.icon)}</div>` : ''}<div class="title">${inline(r.title)}</div><div class="body">${inline(r.body)}</div></div>`).join('');
+  return `<div class="cards-grid">${html}</div>`;
+};
+
+// --- Table --------------------------------------------------
+FENCE.table = function (body) {
+  const rows = body.split('\n')
+    .map(l => l.trim())
+    .filter(l => /^\|/.test(l))
+    .filter(l => !/^\|[\s|:-]+\|?\s*$/.test(l));
+  if (!rows.length) return '';
+  const parsed = rows.map(r => r.replace(/^\||\|$/g, '').split('|').map(s => s.trim()));
+  const head = parsed[0] || [];
+  const body2 = parsed.slice(1);
+  const thead = `<thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join('')}</tr></thead>`;
+  const tbody = `<tbody>${body2.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  return `<table>${thead}${tbody}</table>`;
+};
+
+// --- Timeline -----------------------------------------------
+FENCE.timeline = function (body) {
+  const items = body.split('\n').filter(l => l.trim()).map(l => {
+    const parts = l.replace(/^[-*]\s*/, '').split('|').map(s => s.trim());
+    return { date: parts[0] || '', label: parts[1] || '', note: parts[2] || '' };
+  });
+  if (!items.length) return '';
+  const w = 880, h = 220, pad = 70;
+  const single = items.length === 1;
+  const xs = items.map((_, idx) => single ? w / 2 : pad + idx * ((w - 2 * pad) / (items.length - 1)));
+  const y = h / 2;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<line x1="${pad}" x2="${w - pad}" y1="${y}" y2="${y}" stroke="var(--border-strong)" stroke-width="2"/>`;
+  items.forEach((it, idx) => {
+    const x = xs[idx];
+    const above = idx % 2 === 0;
+    svg += `<line x1="${x}" x2="${x}" y1="${y - 6}" y2="${above ? y - 30 : y + 30}" stroke="var(--accent)" stroke-width="1.5"/>`;
+    svg += `<circle cx="${x}" cy="${y}" r="7" fill="var(--accent)"/>`;
+    svg += `<circle cx="${x}" cy="${y}" r="3" fill="white"/>`;
+    const ty = above ? y - 40 : y + 50;
+    svg += `<text x="${x}" y="${ty}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="var(--muted)" font-weight="700" letter-spacing="2">${escapeHTML(it.date.toUpperCase())}</text>`;
+    svg += `<text x="${x}" y="${ty + (above ? -16 : 16)}" text-anchor="middle" font-family="Iowan Old Style,Georgia,serif" font-size="14" fill="var(--text)" font-weight="600">${escapeHTML(it.label)}</text>`;
+    if (it.note) {
+      svg += `<text x="${x}" y="${ty + (above ? -32 : 32)}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="var(--muted)" font-style="italic">${escapeHTML(it.note)}</text>`;
+    }
+  });
+  svg += `</svg>`;
+  return `<div class="schema">${svg}</div>`;
+};
+
+// --- Pyramid ------------------------------------------------
+FENCE.pyramid = function (body) {
+  const items = body.split('\n').filter(l => l.trim()).map(l => l.replace(/^[-*]\s*/, '').trim());
+  if (!items.length) return '';
+  const n = items.length;
+  const layerH = 64, h = layerH * n + 40, w = 820;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  const wMin = 220, wMax = 720;
+  for (let k = 0; k < n; k++) {
+    const top = 20 + k * layerH;
+    const bot = top + layerH;
+    const ratioTop = k / n, ratioBot = (k + 1) / n;
+    const wTop = wMin + (wMax - wMin) * ratioTop;
+    const wBot = wMin + (wMax - wMin) * ratioBot;
+    const xTopL = (w - wTop) / 2, xTopR = xTopL + wTop;
+    const xBotL = (w - wBot) / 2, xBotR = xBotL + wBot;
+    const opacity = 0.35 + 0.6 * (k / Math.max(n - 1, 1));
+    svg += `<polygon points="${xTopL},${top} ${xTopR},${top} ${xBotR},${bot} ${xBotL},${bot}" fill="var(--accent)" opacity="${opacity.toFixed(2)}" stroke="white" stroke-width="2"/>`;
+    const colon = items[k].indexOf(':');
+    const label = colon >= 0 ? items[k].slice(0, colon).trim() : '';
+    const value = colon >= 0 ? items[k].slice(colon + 1).trim() : items[k];
+    if (label) {
+      svg += `<text x="${w/2}" y="${top + layerH/2 - 6}" text-anchor="middle" fill="white" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700" letter-spacing="2.5">${escapeHTML(label.toUpperCase())}</text>`;
+      svg += `<text x="${w/2}" y="${top + layerH/2 + 13}" text-anchor="middle" fill="white" font-family="Iowan Old Style,Georgia,serif" font-size="14" font-weight="500">${escapeHTML(value)}</text>`;
+    } else {
+      svg += `<text x="${w/2}" y="${top + layerH/2 + 5}" text-anchor="middle" fill="white" font-family="Iowan Old Style,Georgia,serif" font-size="15" font-weight="600">${escapeHTML(value)}</text>`;
+    }
+  }
+  svg += `</svg>`;
+  return `<div class="schema">${svg}</div>`;
+};
+
+// --- Funnel -------------------------------------------------
+FENCE.funnel = function (body) {
+  const items = body.split('\n').filter(l => l.trim()).map(l => {
+    const parts = l.replace(/^[-*]\s*/, '').split('|').map(s => s.trim());
+    const num = Number((parts[1] || '').replace(/[^\d.-]/g, '')) || 0;
+    return { label: parts[0] || '', value: num, raw: parts[1] || '' };
+  });
+  if (!items.length) return '';
+  const max = Math.max(...items.map(x => x.value), 1);
+  const n = items.length;
+  const layerH = 70, h = layerH * n + 20, w = 820;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  for (let k = 0; k < n; k++) {
+    const top = 10 + k * layerH;
+    const bot = top + layerH - 6;
+    const wTop = 220 + 540 * (items[k].value / max);
+    const next = k < n - 1 ? items[k + 1].value / max : items[k].value / max * 0.45;
+    const wBot = 220 + 540 * next;
+    const xTopL = (w - wTop) / 2, xTopR = xTopL + wTop;
+    const xBotL = (w - wBot) / 2, xBotR = xBotL + wBot;
+    const opacity = (0.95 - 0.10 * k).toFixed(2);
+    svg += `<polygon points="${xTopL},${top} ${xTopR},${top} ${xBotR},${bot} ${xBotL},${bot}" fill="var(--accent)" opacity="${Math.max(parseFloat(opacity), 0.32)}"/>`;
+    const cy = top + (layerH - 6) / 2;
+    svg += `<text x="${w/2}" y="${cy - 3}" text-anchor="middle" fill="white" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700" letter-spacing="2.5">${escapeHTML(items[k].label.toUpperCase())}</text>`;
+    svg += `<text x="${w/2}" y="${cy + 16}" text-anchor="middle" fill="white" font-family="Iowan Old Style,Georgia,serif" font-size="17" font-weight="600">${escapeHTML(items[k].raw)}</text>`;
+  }
+  svg += `</svg>`;
+  return `<div class="schema">${svg}</div>`;
+};
+
+// --- Matrix 2x2 ---------------------------------------------
+FENCE.matrix = function (body) {
+  const lines = body.split('\n').map(l => l.trim()).filter(Boolean);
+  let xLabel = 'X', yLabel = 'Y';
+  let xLow = 'low', xHigh = 'high', yLow = 'low', yHigh = 'high';
+  const points = [];
+  for (const l of lines) {
+    if (/^x:/i.test(l)) {
+      const parts = l.replace(/^x:\s*/i, '').split('|').map(s => s.trim());
+      if (parts[0]) xLabel = parts[0];
+      if (parts.length >= 3) { xLow = parts[1]; xHigh = parts[2]; }
+    } else if (/^y:/i.test(l)) {
+      const parts = l.replace(/^y:\s*/i, '').split('|').map(s => s.trim());
+      if (parts[0]) yLabel = parts[0];
+      if (parts.length >= 3) { yLow = parts[1]; yHigh = parts[2]; }
+    } else {
+      const parts = l.replace(/^[-*]\s*/, '').split('|').map(s => s.trim());
+      if (parts.length >= 3) {
+        points.push({ label: parts[0], x: parts[1].toLowerCase(), y: parts[2].toLowerCase() });
+      }
+    }
+  }
+  const buckets = { 'low-high': [], 'high-high': [], 'low-low': [], 'high-low': [] };
+  for (const p of points) {
+    const key = `${p.x}-${p.y}`;
+    if (buckets[key]) buckets[key].push(p.label);
+  }
+  const cell = (cls, key, title) => `<div class="quad ${cls}"><div class="quad-label">${escapeHTML(title)}</div><ul>${buckets[key].map(l => `<li>${inline(l)}</li>`).join('')}</ul></div>`;
+  return `<div class="matrix">
+    <div class="y-axis">${escapeHTML(yLabel)} — ${escapeHTML(yLow)} → ${escapeHTML(yHigh)}</div>
+    ${cell('q-tl', 'low-high', `${xLow} ${xLabel} · ${yHigh} ${yLabel}`)}
+    ${cell('q-tr', 'high-high', `${xHigh} ${xLabel} · ${yHigh} ${yLabel} — priority`)}
+    ${cell('q-bl', 'low-low', `${xLow} ${xLabel} · ${yLow} ${yLabel}`)}
+    ${cell('q-br', 'high-low', `${xHigh} ${xLabel} · ${yLow} ${yLabel}`)}
+    <div class="corner"></div>
+    <div class="x-axis">${escapeHTML(xLabel)} — ${escapeHTML(xLow)} → ${escapeHTML(xHigh)}</div>
+  </div>`;
+};
+
+// --- Sequence diagram ---------------------------------------
+FENCE.sequence = function (body) {
+  const lines = body.split('\n').map(l => l.trim()).filter(Boolean);
+  const actors = [];
+  const events = [];
+  for (const l of lines) {
+    const note = l.match(/^note\s+over\s+([^:]+):\s*(.*)$/i);
+    if (note) {
+      const overs = note[1].split(',').map(s => s.trim());
+      overs.forEach(a => { if (!actors.includes(a)) actors.push(a); });
+      events.push({ kind: 'note', actors: overs, text: note[2] });
+      continue;
+    }
+    const m = l.match(/^([\w\s.&-]+?)\s*(--?>>?|--?>|->)\s*([\w\s.&-]+?)\s*:\s*(.*)$/);
+    if (m) {
+      const from = m[1].trim();
+      const arrow = m[2];
+      const to = m[3].trim();
+      const text = m[4].trim();
+      if (!actors.includes(from)) actors.push(from);
+      if (!actors.includes(to)) actors.push(to);
+      events.push({ kind: 'msg', from, to, text, dashed: arrow.startsWith('--') });
+    }
+  }
+  if (!actors.length) return '';
+  const colW = Math.max(150, Math.min(220, 900 / actors.length));
+  const padX = 30;
+  const w = padX * 2 + actors.length * colW;
+  const headerH = 48, rowH = 50, pad = 30;
+  const h = headerH + events.length * rowH + pad;
+  const colX = i => padX + i * colW + colW / 2;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs><marker id="seqarrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--text)"/></marker></defs>`;
+  actors.forEach((_, i) => {
+    svg += `<line x1="${colX(i)}" x2="${colX(i)}" y1="${headerH}" y2="${h - 10}" stroke="var(--border-strong)" stroke-dasharray="4 5" stroke-width="1"/>`;
+  });
+  actors.forEach((a, i) => {
+    svg += `<rect x="${colX(i) - colW/2 + 12}" y="6" width="${colW - 24}" height="36" rx="4" fill="var(--accent)"/>`;
+    svg += `<text x="${colX(i)}" y="29" text-anchor="middle" fill="white" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600">${escapeHTML(a)}</text>`;
+  });
+  let y = headerH + 10;
+  events.forEach(ev => {
+    y += rowH - 10;
+    if (ev.kind === 'msg') {
+      const fi = actors.indexOf(ev.from), ti = actors.indexOf(ev.to);
+      const x1 = colX(fi), x2 = colX(ti);
+      const dasharray = ev.dashed ? ' stroke-dasharray="6 4"' : '';
+      svg += `<line x1="${x1}" x2="${x2}" y1="${y}" y2="${y}" stroke="var(--text)" stroke-width="1.4"${dasharray} marker-end="url(#seqarrow)"/>`;
+      const tx = (x1 + x2) / 2;
+      const labelW = Math.min(Math.abs(x2 - x1) - 20, 240);
+      svg += `<rect x="${tx - labelW/2}" y="${y - 18}" width="${labelW}" height="14" fill="var(--bg)" opacity="0.95"/>`;
+      svg += `<text x="${tx}" y="${y - 6}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="var(--text)">${escapeHTML(ev.text)}</text>`;
+    } else if (ev.kind === 'note') {
+      const indices = ev.actors.map(a => actors.indexOf(a)).filter(i => i >= 0);
+      const xL = colX(Math.min(...indices)) - 60, xR = colX(Math.max(...indices)) + 60;
+      svg += `<rect x="${xL}" y="${y - 16}" width="${xR - xL}" height="28" rx="3" fill="var(--softer)" stroke="var(--border-strong)" stroke-width="1"/>`;
+      svg += `<text x="${(xL+xR)/2}" y="${y + 2}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="var(--text)" font-style="italic">${escapeHTML(ev.text)}</text>`;
+    }
+  });
+  svg += `</svg>`;
+  return `<div class="schema">${svg}</div>`;
+};
+
+// --- Flow (graph with layered layout) -----------------------
+FENCE.flow = function (body) {
+  const lines = body.split('\n').map(l => l.trim()).filter(Boolean);
+  const nodes = new Map();
+  const edges = [];
+  function parseNode(s) {
+    s = s.trim();
+    let m;
+    if ((m = s.match(/^\[(.+)\]$/))) return { label: m[1], shape: 'rect' };
+    if ((m = s.match(/^\((.+)\)$/))) return { label: m[1], shape: 'pill' };
+    if ((m = s.match(/^\{(.+)\}$/))) return { label: m[1], shape: 'diamond' };
+    return { label: s, shape: 'rect' };
+  }
+  for (const l of lines) {
+    const m = l.match(/^(.+?)\s*-(?:([^>]*?)-)?>\s*(.+)$/);
+    if (!m) continue;
+    const from = parseNode(m[1]);
+    const label = (m[2] || '').trim();
+    const to = parseNode(m[3]);
+    if (!nodes.has(from.label)) nodes.set(from.label, from);
+    if (!nodes.has(to.label)) nodes.set(to.label, to);
+    edges.push({ from: from.label, to: to.label, label });
+  }
+  if (!nodes.size) return '';
+  const order = [...nodes.keys()];
+  const inDeg = new Map(order.map(k => [k, 0]));
+  for (const e of edges) inDeg.set(e.to, (inDeg.get(e.to) || 0) + 1);
+  const layer = new Map();
+  let cur = order.filter(k => inDeg.get(k) === 0);
+  if (!cur.length) cur = [order[0]];
+  let lvl = 0;
+  const visited = new Set();
+  while (cur.length && lvl < 50) {
+    const next = [];
+    for (const k of cur) {
+      if (!visited.has(k)) { layer.set(k, lvl); visited.add(k); }
+    }
+    for (const k of cur) {
+      for (const e of edges) if (e.from === k && !visited.has(e.to)) next.push(e.to);
+    }
+    cur = [...new Set(next)];
+    lvl++;
+  }
+  for (const k of order) if (!layer.has(k)) layer.set(k, lvl);
+  const byLayer = {};
+  for (const [k, v] of layer) (byLayer[v] = byLayer[v] || []).push(k);
+  const maxLayer = Math.max(...Object.keys(byLayer).map(Number));
+  const layerCount = maxLayer + 1;
+  const layerH = 110, colW = 180;
+  const maxCols = Math.max(...Object.values(byLayer).map(arr => arr.length));
+  const w = Math.max(maxCols * colW + 60, 600);
+  const h = layerCount * layerH + 60;
+  const pos = new Map();
+  for (let li = 0; li < layerCount; li++) {
+    const arr = byLayer[li] || [];
+    const totalW = arr.length * colW;
+    const startX = (w - totalW) / 2 + colW / 2;
+    arr.forEach((k, ci) => pos.set(k, { x: startX + ci * colW, y: 40 + li * layerH }));
+  }
+  const nodeW = 150, nodeH = 46;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs><marker id="flowarrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--muted)"/></marker></defs>`;
+  for (const e of edges) {
+    const a = pos.get(e.from), b = pos.get(e.to);
+    if (!a || !b) continue;
+    const x1 = a.x, y1 = a.y + nodeH/2;
+    const x2 = b.x, y2 = b.y - nodeH/2;
+    const cy = (y1 + y2) / 2;
+    const path = `M ${x1} ${y1} C ${x1} ${cy}, ${x2} ${cy}, ${x2} ${y2}`;
+    svg += `<path d="${path}" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#flowarrow)"/>`;
+    if (e.label) {
+      const lx = (x1 + x2) / 2, ly = cy;
+      const lw = e.label.length * 6.5 + 14;
+      svg += `<rect x="${lx - lw/2}" y="${ly - 9}" width="${lw}" height="18" rx="3" fill="var(--bg)" stroke="var(--border)" stroke-width="1"/>`;
+      svg += `<text x="${lx}" y="${ly + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="11" fill="var(--muted)" font-weight="600">${escapeHTML(e.label)}</text>`;
+    }
+  }
+  for (const [label, info] of nodes) {
+    const p = pos.get(label);
+    if (!p) continue;
+    const x = p.x - nodeW/2, y = p.y - nodeH/2;
+    if (info.shape === 'diamond') {
+      const cx = p.x, cy = p.y, dx = nodeW/2 + 12, dy = nodeH/2 + 10;
+      svg += `<polygon points="${cx},${cy-dy} ${cx+dx},${cy} ${cx},${cy+dy} ${cx-dx},${cy}" fill="white" stroke="var(--accent)" stroke-width="1.6"/>`;
+      svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" font-weight="600" fill="var(--accent)">${escapeHTML(label)}</text>`;
+    } else if (info.shape === 'pill') {
+      svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="${nodeH/2}" fill="var(--accent)"/>`;
+      svg += `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="white">${escapeHTML(label)}</text>`;
+    } else {
+      svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="3" fill="white" stroke="var(--text)" stroke-width="1.2"/>`;
+      svg += `<text x="${p.x}" y="${p.y + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" fill="var(--text)" font-weight="500">${escapeHTML(label)}</text>`;
+    }
+  }
+  svg += `</svg>`;
+  return `<div class="schema">${svg}</div>`;
+};
+
+// --- Org chart ----------------------------------------------
+FENCE.org = function (body) {
+  const lines = body.split('\n').filter(l => l.trim());
+  if (!lines.length) return '';
+  const root = { label: '__root__', children: [], depth: -1 };
+  const stack = [root];
+  function effectiveDepth(s) {
+    const visual = s.replace(/\t/g, '  ').match(/^(\s*)/)[1].length;
+    const hasBullet = /^\s*[-*]\s/.test(s);
+    return visual + (hasBullet ? 2 : 0);
+  }
+  for (const line of lines) {
+    const depth = effectiveDepth(line);
+    const text = line.replace(/^\s*[-*]?\s*/, '').trim();
+    if (!text) continue;
+    const node = { label: text, children: [], depth };
+    while (stack.length > 1 && stack[stack.length - 1].depth >= depth) stack.pop();
+    stack[stack.length - 1].children.push(node);
+    stack.push(node);
+  }
+  function measure(n) { n.w = n.children.length ? n.children.reduce((s, c) => s + measure(c), 0) : 1; return n.w; }
+  for (const c of root.children) measure(c);
+  const total = root.children.reduce((s, c) => s + c.w, 0);
+  if (!total) return '';
+  function maxDepth(n, d) { let m = d; for (const c of n.children) m = Math.max(m, maxDepth(c, d + 1)); return m; }
+  const depth = maxDepth({ children: root.children }, -1);
+  const colW = 170, rowH = 90;
+  const w = Math.max(total * colW, 400);
+  const h = (depth + 1) * rowH + 40;
+  let cx = 0;
+  function place(n, x, y) { n.x = x; n.y = y; let acc = x - (n.w * colW) / 2; for (const c of n.children) { place(c, acc + (c.w * colW) / 2, y + rowH); acc += c.w * colW; } }
+  for (const c of root.children) { place(c, cx + (c.w * colW) / 2, 30); cx += c.w * colW; }
+  const nodeW = 150, nodeH = 44;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+  function draw(n) {
+    const x = n.x - nodeW/2, y = n.y - nodeH/2;
+    svg += `<rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="3" fill="white" stroke="var(--text)" stroke-width="1.2"/>`;
+    svg += `<text x="${n.x}" y="${n.y + 4}" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="500" fill="var(--text)">${escapeHTML(n.label)}</text>`;
+    for (const c of n.children) {
+      const midY = (n.y + nodeH/2 + c.y - nodeH/2) / 2;
+      svg += `<path d="M ${n.x} ${n.y + nodeH/2} L ${n.x} ${midY} L ${c.x} ${midY} L ${c.x} ${c.y - nodeH/2}" fill="none" stroke="var(--muted)" stroke-width="1.2"/>`;
+      draw(c);
+    }
+  }
+  for (const c of root.children) draw(c);
+  svg += `</svg>`;
+  return `<div class="schema">${svg}</div>`;
+};
+
+// ============================================================
+//  Top-level
+// ============================================================
+function renderBlock(b) {
+  switch (b.type) {
+    case 'heading': return renderHeading(b);
+    case 'paragraph': return renderParagraph(b);
+    case 'hr': return renderHR();
+    case 'list': return renderList(b);
+    case 'callout': return renderCallout(b);
+    case 'fence': return renderFence(b);
+  }
+  return '';
+}
+
+function render(src) {
+  const ast = parse(src);
+  const accent = ast.meta && ast.meta.theme && ast.meta.theme.accent;
+  if (accent) document.documentElement.style.setProperty('--accent', accent);
+  else document.documentElement.style.removeProperty('--accent');
+  const out = [renderHeader(ast.meta || {})];
+  for (const b of ast.blocks) out.push(renderBlock(b));
+  return out.join('\n');
+}
+
+// ============================================================
+//  Wire-up
+// ============================================================
+const STORAGE_KEY = 'deckdsl.source.v1';
+const $src = document.getElementById('src');
+const $out = document.getElementById('output');
+const SAMPLE = document.getElementById('sample-doc').textContent;
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+function update() {
+  const v = $src.value;
+  $out.innerHTML = render(v);
+  try { localStorage.setItem(STORAGE_KEY, v); } catch (e) {}
+}
+
+$src.addEventListener('input', debounce(update, 80));
+$src.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = $src.selectionStart, en = $src.selectionEnd;
+    $src.value = $src.value.slice(0, s) + '  ' + $src.value.slice(en);
+    $src.selectionStart = $src.selectionEnd = s + 2;
+    update();
+  }
+});
+
+document.getElementById('btn-sample').addEventListener('click', () => {
+  $src.value = SAMPLE;
+  update();
+  $src.scrollTop = 0;
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  if (confirm('Clear the editor?')) { $src.value = ''; update(); }
+});
+document.getElementById('btn-print').addEventListener('click', () => window.print());
+document.getElementById('btn-export').addEventListener('click', () => {
+  const title = ($src.value.match(/^title:\s*(.+)$/m) || [])[1] || 'document';
+  const safeTitle = title.replace(/["\\]/g, '');
+  const css = document.querySelector('style').textContent;
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${safeTitle.replace(/[<>&]/g, '')}</title>
+<style>${css}</style></head>
+<body style="background:var(--bg)"><div class="document">${$out.innerHTML}</div></body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (safeTitle.replace(/[^\w-]+/g, '-').toLowerCase() || 'document') + '.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+// ============================================================
+//  Share via JWT-formatted token (alg=none + gzip + base64url).
+//  No backend — the deck data is encoded directly into the URL fragment.
+//  Honest disclosure: alg=none means the signature is structural, not
+//  cryptographic. Anyone who has the link can view; no tamper protection.
+//  The JWT envelope is used so a future version can adopt real signing
+//  (e.g. ES256 via WebCrypto) without breaking link compatibility.
+// ============================================================
+
+function b64urlEncodeBytes(bytes) {
+  let str = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    str += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlEncodeStr(s) { return b64urlEncodeBytes(new TextEncoder().encode(s)); }
+function b64urlDecodeBytes(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const str = atob(s);
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+  return bytes;
+}
+function b64urlDecodeStr(s) { return new TextDecoder().decode(b64urlDecodeBytes(s)); }
+
+async function gzipCompress(text) {
+  if (typeof CompressionStream === 'undefined') return new TextEncoder().encode(text);
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function gzipDecompress(bytes) {
+  // gzip magic = 1f 8b. If absent or DecompressionStream unavailable, treat as plain UTF-8.
+  if (bytes[0] !== 0x1f || bytes[1] !== 0x8b || typeof DecompressionStream === 'undefined') {
+    return new TextDecoder().decode(bytes);
+  }
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(stream).text();
+}
+
+async function encodeDeckToken(dsl, opts) {
+  opts = opts || {};
+  const compressed = await gzipCompress(dsl);
+  const titleMatch = dsl.match(/^title:\s*(.+)$/m);
+  const payload = {
+    v: 1,
+    iat: Math.floor(Date.now() / 1000),
+    title: titleMatch ? titleMatch[1].trim().replace(/^["']|["']$/g, '') : 'Untitled deck',
+    z: typeof CompressionStream !== 'undefined' ? 'gzip' : 'none',
+    dsl: b64urlEncodeBytes(compressed),
+  };
+  if (opts.expiresInDays && opts.expiresInDays > 0) {
+    payload.exp = payload.iat + opts.expiresInDays * 86400;
+  }
+  const header = { alg: 'none', typ: 'DECK', v: 1 };
+  return b64urlEncodeStr(JSON.stringify(header)) + '.' + b64urlEncodeStr(JSON.stringify(payload)) + '.';
+}
+
+async function decodeDeckToken(token) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('Malformed token (expected three segments)');
+  let header, payload;
+  try {
+    header = JSON.parse(b64urlDecodeStr(parts[0]));
+    payload = JSON.parse(b64urlDecodeStr(parts[1]));
+  } catch (e) { throw new Error('Token is not valid base64/JSON'); }
+  if (header.typ !== 'DECK') throw new Error('Token is not a Deck DSL share');
+  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    const e = new Error('This share link has expired'); e.code = 'expired'; throw e;
+  }
+  let dsl;
+  if (payload.z === 'gzip') {
+    dsl = await gzipDecompress(b64urlDecodeBytes(payload.dsl));
+  } else {
+    dsl = b64urlDecodeStr(payload.dsl);
+  }
+  return { dsl, payload, header };
+}
+
+// ============================================================
+//  Share dialog UI
+// ============================================================
+const $shareDialog = document.getElementById('share-dialog');
+const $shareUrl = document.getElementById('share-url');
+const $shareExpires = document.getElementById('share-expires');
+const $shareInfo = document.getElementById('share-info');
+const $shareCopy = document.getElementById('share-copy');
+const $shareClose = document.getElementById('share-close');
+const $btnShare = document.getElementById('btn-share');
+const $toast = document.getElementById('toast');
+
+let toastTimer = null;
+function toast(msg) {
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $toast.classList.remove('show'), 1800);
+}
+
+async function refreshShareUrl() {
+  const dsl = $src.value;
+  if (!dsl.trim()) {
+    $shareUrl.value = '';
+    $shareInfo.innerHTML = '<strong>Editor is empty.</strong> Write something first.';
+    return;
+  }
+  const days = parseInt($shareExpires.value, 10) || 0;
+  const token = await encodeDeckToken(dsl, { expiresInDays: days });
+  const base = location.origin + location.pathname;
+  const url = base + '#deck=' + token;
+  $shareUrl.value = url;
+  const len = url.length;
+  const sizeStr = len > 1024 ? (Math.round(len / 1024 * 10) / 10) + ' KB' : len + ' chars';
+  let warn = '';
+  if (len > 30000) warn = ' <span class="warn">Very long URL — some browsers and chat apps may truncate it. Trim the deck or split it.</span>';
+  else if (len > 8000) warn = ' Some chat apps may struggle with URLs this long.';
+  const exp = days > 0 ? `expires in ${days} day${days === 1 ? '' : 's'}` : 'never expires';
+  $shareInfo.innerHTML = `<strong>${sizeStr}</strong> · ${exp}.${warn}`;
+}
+
+function openShareDialog() {
+  if (!$src.value.trim()) { toast('Editor is empty'); return; }
+  $shareDialog.classList.add('open');
+  refreshShareUrl();
+}
+function closeShareDialog() { $shareDialog.classList.remove('open'); }
+
+$btnShare.addEventListener('click', openShareDialog);
+$shareClose.addEventListener('click', closeShareDialog);
+$shareDialog.addEventListener('click', (e) => { if (e.target === $shareDialog) closeShareDialog(); });
+$shareExpires.addEventListener('change', refreshShareUrl);
+$shareUrl.addEventListener('focus', () => $shareUrl.select());
+$shareCopy.addEventListener('click', async () => {
+  if (!$shareUrl.value) return;
+  try {
+    await navigator.clipboard.writeText($shareUrl.value);
+    toast('Link copied to clipboard');
+  } catch (e) {
+    $shareUrl.select();
+    try { document.execCommand('copy'); toast('Link copied'); }
+    catch (_) { toast('Copy failed — select the URL manually'); }
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $shareDialog.classList.contains('open')) closeShareDialog();
+});
+
+// ============================================================
+//  Viewer mode (URL fragment contains #deck=<token>)
+// ============================================================
+function getDeckTokenFromHash() {
+  const m = location.hash.match(/(?:^#|&)deck=([^&]+)/);
+  return m ? m[1] : null;
+}
+
+function renderError(title, message) {
+  document.body.classList.add('viewer-mode');
+  const previewToolbar = document.querySelector('.preview .toolbar');
+  previewToolbar.innerHTML = `
+    <span class="brand">Deck DSL</span>
+    <span class="viewer-title">Shared deck</span>
+    <span class="spacer"></span>
+    <button id="btn-back-editor">Open editor</button>
+  `;
+  document.getElementById('btn-back-editor').addEventListener('click', () => {
+    location.hash = '';
+    location.reload();
+  });
+  $out.innerHTML = `<div class="error-card">
+    <div class="icon">!</div>
+    <h2>${escapeHTML(title)}</h2>
+    <p>${escapeHTML(message)}</p>
+    <button onclick="location.hash=''; location.reload();">Open the editor</button>
+  </div>`;
+}
+
+async function enterViewerModeIfPresent() {
+  const token = getDeckTokenFromHash();
+  if (!token) return false;
+  document.body.classList.add('viewer-mode');
+  let decoded;
+  try {
+    decoded = await decodeDeckToken(token);
+  } catch (e) {
+    if (e.code === 'expired') {
+      renderError('This link has expired', 'The author set an expiration date that has passed. Ask them to send you a fresh link.');
+    } else {
+      renderError('Could not load this deck', 'The link looks malformed or was truncated in transit. Try copying it again from the original source.');
+    }
+    return true;
+  }
+  const { dsl, payload } = decoded;
+  const previewToolbar = document.querySelector('.preview .toolbar');
+  const expDate = payload.exp ? new Date(payload.exp * 1000) : null;
+  const expStr = expDate ? expDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+  previewToolbar.innerHTML = `
+    <span class="brand">Deck DSL</span>
+    <span class="viewer-title">${escapeHTML(payload.title || 'Shared deck')}</span>
+    <span class="spacer"></span>
+    ${expStr ? `<span class="viewer-exp">Expires ${escapeHTML(expStr)}</span>` : ''}
+    <button id="btn-edit-copy" title="Copy this deck into the editor">Open in editor</button>
+    <button id="btn-print-shared">Print / PDF</button>
+  `;
+  document.getElementById('btn-print-shared').addEventListener('click', () => window.print());
+  document.getElementById('btn-edit-copy').addEventListener('click', () => {
+    try { localStorage.setItem(STORAGE_KEY, dsl); } catch (e) {}
+    location.hash = '';
+    location.reload();
+  });
+  $src.value = dsl;
+  update();
+  return true;
+}
+
+// ============================================================
+//  Boot
+// ============================================================
+(async function boot() {
+  const inViewer = await enterViewerModeIfPresent();
+  if (!inViewer) {
+    $src.value = localStorage.getItem(STORAGE_KEY) || SAMPLE;
+    update();
+  }
+})();
+</script>
+</body>
+</html>
